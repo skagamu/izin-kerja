@@ -212,7 +212,7 @@
   <script>
     const fields = ['nama', 'hari_tgl', 'jenis_izin', 'ket'];
     const targetPhone = '6281548561354';
-    const apiUrl = 'https://script.google.com/macros/s/AKfycbxRutqld0iFXEFQ1UJiZhrXEEa_VY5hl9vLIT3W4GR1rzpajEZEPbuqN172VdEmZ0Q83A/exec';
+    const apiUrl = "https://script.google.com/macros/s/AKfycbw3JgGNB7JtL8YkeQ2A-QM2UVeohbe9j6GC_d58LpZbGn46W6NCWv_tpN92KInaRKv3/exec";
     
     let dbGuru = [];
     let selectedKedudukan = 'Guru';
@@ -220,11 +220,17 @@
     async function loadDaftarNama() {
       const selectNama = document.getElementById('nama');
       try {
-        const response = await fetch(apiUrl);
-        dbGuru = await response.json();
+        const response = await fetch(`${apiUrl}?action=getDatabase&_=${Date.now()}`);
+        const raw = await response.json();
+        
+        dbGuru = (raw || []).map(r => ({
+          rfid: (r[0] || '').toString().trim(),
+          nama: (r[1] || '').toString().trim(),
+          kedudukan: (r[2] || 'GURU').toString().trim()
+        })).filter(g => g.nama);
         
         selectNama.innerHTML = '<option value="" disabled selected>Pilih Nama & Gelar</option>';
-        if (Array.isArray(dbGuru) && dbGuru.length > 0) {
+        if (dbGuru.length > 0) {
           dbGuru.forEach(guru => {
             const opt = document.createElement('option');
             opt.value = guru.nama;
@@ -357,10 +363,11 @@ ${nama}`;
 
       const formattedDate = formatIndonesianDate(rawDate);
       const payload = {
+        action: "logIzin",
         nama: namaValue,
         kedudukan: selectedKedudukan,
         jenis_izin: document.getElementById('jenis_izin').value,
-        hari_tgl: formattedDate,
+        hari_tgl: rawDate, // format YYYY-MM-DD
         alasan: alasanValue
       };
 
