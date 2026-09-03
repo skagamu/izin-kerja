@@ -212,7 +212,9 @@
   <script>
     const fields = ['nama', 'hari_tgl', 'jenis_izin', 'ket'];
     const targetPhone = '6281548561354';
-    const apiUrl = "https://script.google.com/macros/s/AKfycbw3JgGNB7JtL8YkeQ2A-QM2UVeohbe9j6GC_d58LpZbGn46W6NCWv_tpN92KInaRKv3/exec";
+    const presensiUrl = "https://script.google.com/macros/s/AKfycbw3JgGNB7JtL8YkeQ2A-QM2UVeohbe9j6GC_d58LpZbGn46W6NCWv_tpN92KInaRKv3/exec";
+    const uploadUrl   = "https://script.google.com/macros/s/AKfycbxRutqld0iFXEFQ1UJiZhrXEEa_VY5hl9vLIT3W4GR1rzpajEZEPbuqN172VdEmZ0Q83A/exec";
+    const apiUrl      = presensiUrl;
     
     let dbGuru = [];
     let selectedKedudukan = 'Guru';
@@ -386,20 +388,27 @@ ${nama}`;
       }
 
       try {
-        // Mengubah format ke URLSearchParams untuk memicu Content-Type: application/x-www-form-urlencoded
         const searchParams = new URLSearchParams();
         for (const key in payload) {
           searchParams.append(key, payload[key]);
         }
 
-        // Jalankan fetch dengan mode no-cors murni tanpa custom headers agar tidak diblokir CORS browser
-        await fetch(apiUrl, {
+        // 1. Simpan ke Spreadsheet Presensi (Sheet Data Izin)
+        const p1 = fetch(presensiUrl, {
           method: 'POST',
           mode: 'no-cors',
           body: searchParams
         });
 
-        // Karena mode: 'no-cors', kita anggap pemrosesan selalu sukses 
+        // 2. Simpan Bukti File ke Google Drive (Backend Izin Asli)
+        const p2 = fetch(uploadUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: searchParams
+        });
+
+        await Promise.allSettled([p1, p2]);
+
         statusDiv.className = "status-msg success";
         statusDiv.innerText = "Berhasil disimpan! Mengalihkan ke WhatsApp...";
         
