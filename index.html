@@ -388,26 +388,40 @@ ${nama}`;
       }
 
       try {
-        const searchParams = new URLSearchParams();
+        // 1. Upload file ke Google Drive backend untuk mendapatkan fileUrl
+        const uploadParams = new URLSearchParams();
         for (const key in payload) {
-          searchParams.append(key, payload[key]);
+          uploadParams.append(key, payload[key]);
         }
 
-        // 1. Simpan ke Spreadsheet Presensi (Sheet Data Izin)
-        const p1 = fetch(presensiUrl, {
+        let uploadedUrl = "";
+        try {
+          const resDrive = await fetch(uploadUrl, {
+            method: 'POST',
+            body: uploadParams
+          });
+          const resJson = await resDrive.json();
+          if (resJson && resJson.fileUrl) {
+            uploadedUrl = resJson.fileUrl;
+          }
+        } catch(e) {
+          console.log("Upload via cors fallback, sending directly");
+        }
+
+        // 2. Kirim ke Spreadsheet Presensi beserta fileUrl untuk merender Formula IMAGE
+        const presensiParams = new URLSearchParams();
+        for (const key in payload) {
+          presensiParams.append(key, payload[key]);
+        }
+        if (uploadedUrl) {
+          presensiParams.append("fileUrl", uploadedUrl);
+        }
+
+        await fetch(presensiUrl, {
           method: 'POST',
           mode: 'no-cors',
-          body: searchParams
+          body: presensiParams
         });
-
-        // 2. Simpan Bukti File ke Google Drive (Backend Izin Asli)
-        const p2 = fetch(uploadUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          body: searchParams
-        });
-
-        await Promise.allSettled([p1, p2]);
 
         statusDiv.className = "status-msg success";
         statusDiv.innerText = "Berhasil disimpan! Mengalihkan ke WhatsApp...";
